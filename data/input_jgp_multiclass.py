@@ -37,10 +37,19 @@ class JGPMultiDataset(Dataset):
         
         # add labels
         self.labels = [str(d).split("/")[-1] for d in self.image_dir.glob('*')]
+        # assume negative label always on idx 0
+        tmp = ["neg"]
+        for l in self.labels:
+            if l != "neg":
+                tmp.append(l)
+        self.labels = tmp
+
         self.labels_lookup = dict()
         # assume we created the each labels is presented in each split
         for idx, l in enumerate(self.labels):
             self.labels_lookup[l] = idx
+        
+        print(self.labels_lookup)
 
         # use dictionary of list to store files
         self.files = dict()

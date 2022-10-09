@@ -115,7 +115,7 @@ class End2End:
                 #print("decision:", decision)
                 #print("is_pos_:", is_pos_)
                 #print(seg_masks_)
-                print(decision, labels[sub_iter])
+                #print(decision, labels[sub_iter])
                 loss_dec = criterion_dec(decision, labels[sub_iter])
 
                 total_loss_seg += loss_seg.item()
@@ -218,7 +218,7 @@ class End2End:
 
         return losses, validation_data
 
-    def eval_model(self, device, model, eval_loader, save_folder, save_images, is_validation, plot_seg):
+    def eval_model(self, device, model, eval_loader, save_folder, save_images, is_validation, plot_seg, multi_class=True):
         model.eval()
 
         dsize = self.cfg.INPUT_WIDTH, self.cfg.INPUT_HEIGHT
@@ -228,8 +228,9 @@ class End2End:
 
         for data_point in eval_loader:
             image, seg_mask, seg_loss_mask, _, sample_name, label = data_point
+            #print(label.shape)
             image, seg_mask = image.to(device), seg_mask.to(device)
-            is_pos = (seg_mask.max() > 0).reshape((1, 1)).to(device).item()
+            #is_pos = (seg_mask.max() > 0).reshape((1, 1)).to(device).item()
             prediction, pred_seg = model(image)
             pred_seg = nn.Sigmoid()(pred_seg)
             prediction = nn.Sigmoid()(prediction)
@@ -239,10 +240,11 @@ class End2End:
             image = image.detach().cpu().numpy()
             pred_seg = pred_seg.detach().cpu().numpy()
             seg_mask = seg_mask.detach().cpu().numpy()
+            label = label.detach().cpu().item()
 
             predictions.append(prediction)
-            ground_truths.append(is_pos)
-            res.append((prediction, None, None, is_pos, sample_name[0]))
+            ground_truths.append(label)
+            res.append((prediction, None, None, label, sample_name[0]))
             if not is_validation:
                 if save_images:
                     image = cv2.resize(np.transpose(image[0, :, :, :], (1, 2, 0)), dsize)
@@ -257,11 +259,15 @@ class End2End:
 
         if is_validation:
             metrics = utils.get_metrics(np.array(ground_truths), np.array(predictions))
-            FP, FN, TP, TN = list(map(sum, [metrics["FP"], metrics["FN"], metrics["TP"], metrics["TN"]]))
-            self._log(f"VALIDATION || AUC={metrics['AUC']:f}, and AP={metrics['AP']:f}, with best thr={metrics['best_thr']:f} "
-                      f"at f-measure={metrics['best_f_measure']:.3f} and FP={FP:d}, FN={FN:d}, TOTAL SAMPLES={FP + FN + TP + TN:d}")
-
-            return metrics["AP"], metrics["accuracy"]
+            if multi_class:
+                ACC_B, ACC_M = (metrics["acc_binary"], metrics["acc_multi-class"])
+                self._log(f"VALIDATION || acc_binary={ACC_B:.4f}, and acc_multi={ACC_M:.4f}")
+                return metrics["acc_binary"], metrics["acc_multi-class"]
+            else:
+                FP, FN, TP, TN = list(map(sum, [metrics["FP"], metrics["FN"], metrics["TP"], metrics["TN"]]))
+                self._log(f"VALIDATION || AUC={metrics['AUC']:f}, and AP={metrics['AP']:f}, with best thr={metrics['best_thr']:f} "
+                        f"at f-measure={metrics['best_f_measure']:.3f} and FP={FP:d}, FN={FN:d}, TOTAL SAMPLES={FP + FN + TP + TN:d}")
+                return metrics["AP"], metrics["accuracy"]
         else:
             utils.evaluate_metrics(res, self.run_path, self.run_name)
 
