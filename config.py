@@ -98,6 +98,10 @@ class Config:
             if self.NUM_SEGMENTED is None:
                 raise Exception("Missing NUM_SEGMENTED for JGP dataset!")
             '''
+        elif self.DATASET == 'JGPMulti':
+            self.INPUT_WIDTH = 128
+            self.INPUT_HEIGHT = 128
+            self.INPUT_CHANNELS = 3
         else:
             raise Exception('Unknown dataset {}'.format(self.DATASET))
 

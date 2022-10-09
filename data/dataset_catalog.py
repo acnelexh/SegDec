@@ -3,6 +3,7 @@ from .input_dagm import DagmDataset
 from .input_steel import SteelDataset
 from .input_ksdd2 import KSDD2Dataset
 from .input_jgp import JGPDataset
+from .input_jgp_multiclass import JGPMultiDataset
 from config import Config
 from torch.utils.data import DataLoader
 from typing import Optional
@@ -23,6 +24,8 @@ def get_dataset(kind: str, cfg: Config) -> Optional[DataLoader]:
         ds = KSDD2Dataset(kind, cfg)
     elif cfg.DATASET == "JGP":
         ds = JGPDataset(kind, cfg)
+    elif cfg.DATASET == "JGPMulti":
+        ds = JGPMultiDataset(kind, cfg)
     else:
         raise Exception(f"Unknown dataset {cfg.DATASET}")
 
