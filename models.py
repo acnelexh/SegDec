@@ -73,9 +73,11 @@ class SegDecNet(nn.Module):
                                     nn.MaxPool2d(2),
                                     _conv_block(64, 1024, 15, 7))
 
-        self.seg_mask = nn.Sequential(
-            Conv2d_init(in_channels=1024, out_channels=1, kernel_size=1, padding=0, bias=False),
-            FeatureNorm(num_features=1, eps=0.001, include_bias=False))
+        #self.seg_mask = nn.Sequential(
+        #    Conv2d_init(in_channels=1024, out_channels=1, kernel_size=1, padding=0, bias=False),
+        #    FeatureNorm(num_features=1, eps=0.001, include_bias=False))
+        
+        self.seg_mask = Conv2d_init(in_channels=1024, out_channels=1, kernel_size=1, padding=0, bias=False)
 
         self.extractor = nn.Sequential(nn.MaxPool2d(kernel_size=2),
                                        _conv_block(in_chanels=1025, out_chanels=8, kernel_size=5, padding=2),

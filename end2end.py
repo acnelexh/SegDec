@@ -89,11 +89,14 @@ class End2End:
 
         labels = labels.to(device)
         for sub_iter in range(num_subiters):
+            labels_sub_itr = labels[sub_iter]
             images_ = images[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
             seg_masks_ = seg_masks[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
             # make seg_mask_ a binary mask (due to dialtion, some pixel is between)
             seg_masks_[seg_masks_ > 0.5] = 1
             seg_masks_[seg_masks_ != 1] = 0
+            # make the mask value == label idx
+            seg_masks_ *= labels_sub_itr
             seg_loss_masks_ = seg_loss_masks[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
             # TODO change this to support multi label
             #is_pos_ = seg_masks_.max().reshape((memory_fit, 1)).to(device)
@@ -116,7 +119,7 @@ class End2End:
                 #print("is_pos_:", is_pos_)
                 #print(seg_masks_)
                 #print(decision, labels[sub_iter])
-                loss_dec = criterion_dec(decision, labels[sub_iter])
+                loss_dec = criterion_dec(decision, labels_sub_itr)
 
                 total_loss_seg += loss_seg.item()
                 total_loss_dec += loss_dec.item()
@@ -124,13 +127,13 @@ class End2End:
                 #print(decision)
                 #print(torch.argmax(decision).item())
                 #print(labels[sub_iter].item())
-                total_correct += torch.argmax(decision).item() == labels[sub_iter].item()
+                total_correct += torch.argmax(decision).item() == labels_sub_itr.item()
                 loss = weight_loss_seg * loss_seg + weight_loss_dec * loss_dec
             else:
-                loss_dec = criterion_dec(decision, labels[sub_iter])
+                loss_dec = criterion_dec(decision, labels_sub_itr)
                 total_loss_dec += loss_dec.item()
 
-                total_correct += torch.argmax(decision).item() == labels[sub_iter].item()
+                total_correct += torch.argmax(decision).item() == labels_sub_itr.item()
                 loss = weight_loss_dec * loss_dec
             total_loss += loss.item()
 
@@ -353,7 +356,8 @@ class End2End:
     def _get_loss(self, is_seg):
         reduction = "none" if self.cfg.WEIGHTED_SEG_LOSS and is_seg else "mean"
         if is_seg:
-            return nn.BCEWithLogitsLoss(reduction=reduction).to(self._get_device())
+            #return nn.BCEWithLogitsLoss(reduction=reduction).to(self._get_device())
+            return nn.CrossEntropyLoss(reduction=reduction).to(self._get_device())
         else:
             return nn.CrossEntropyLoss(reduction=reduction).to(self._get_device())
 
