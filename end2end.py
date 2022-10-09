@@ -87,6 +87,7 @@ class End2End:
         total_loss_seg = 0
         total_loss_dec = 0
 
+        labels = labels.to(device)
         for sub_iter in range(num_subiters):
             images_ = images[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
             seg_masks_ = seg_masks[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
@@ -95,7 +96,8 @@ class End2End:
             seg_masks_[seg_masks_ != 1] = 0
             seg_loss_masks_ = seg_loss_masks[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
             # TODO change this to support multi label
-            is_pos_ = seg_masks_.max().reshape((memory_fit, 1)).to(device)
+            #is_pos_ = seg_masks_.max().reshape((memory_fit, 1)).to(device)
+
 
             if tensorboard_writer is not None and iter_index % 100 == 0:
                 tensorboard_writer.add_image(f"{iter_index}/image", images_[0, :, :, :])
@@ -103,6 +105,7 @@ class End2End:
                 tensorboard_writer.add_image(f"{iter_index}/seg_loss_mask", seg_loss_masks_[0, :, :, :])
 
             decision, output_seg_mask = model(images_)
+            #print(decision.shape, labels[sub_iter])
 
             if is_segmented[sub_iter]:
                 if self.cfg.WEIGHTED_SEG_LOSS:
@@ -112,18 +115,22 @@ class End2End:
                 #print("decision:", decision)
                 #print("is_pos_:", is_pos_)
                 #print(seg_masks_)
-                loss_dec = criterion_dec(decision, is_pos_)
+                print(decision, labels[sub_iter])
+                loss_dec = criterion_dec(decision, labels[sub_iter])
 
                 total_loss_seg += loss_seg.item()
                 total_loss_dec += loss_dec.item()
 
-                total_correct += (decision > 0.0).item() == is_pos_.item()
+                #print(decision)
+                #print(torch.argmax(decision).item())
+                #print(labels[sub_iter].item())
+                total_correct += torch.argmax(decision).item() == labels[sub_iter].item()
                 loss = weight_loss_seg * loss_seg + weight_loss_dec * loss_dec
             else:
-                loss_dec = criterion_dec(decision, is_pos_)
+                loss_dec = criterion_dec(decision, labels[sub_iter])
                 total_loss_dec += loss_dec.item()
 
-                total_correct += (decision > 0.0).item() == is_pos_.item()
+                total_correct += torch.argmax(decision).item() == labels[sub_iter].item()
                 loss = weight_loss_dec * loss_dec
             total_loss += loss.item()
 
@@ -220,14 +227,15 @@ class End2End:
         predictions, ground_truths = [], []
 
         for data_point in eval_loader:
-            image, seg_mask, seg_loss_mask, _, sample_name = data_point
+            image, seg_mask, seg_loss_mask, _, sample_name, label = data_point
             image, seg_mask = image.to(device), seg_mask.to(device)
             is_pos = (seg_mask.max() > 0).reshape((1, 1)).to(device).item()
             prediction, pred_seg = model(image)
             pred_seg = nn.Sigmoid()(pred_seg)
             prediction = nn.Sigmoid()(prediction)
 
-            prediction = prediction.item()
+            #print(prediction)
+            prediction = torch.argmax(prediction).item()
             image = image.detach().cpu().numpy()
             pred_seg = pred_seg.detach().cpu().numpy()
             seg_mask = seg_mask.detach().cpu().numpy()
@@ -338,7 +346,10 @@ class End2End:
 
     def _get_loss(self, is_seg):
         reduction = "none" if self.cfg.WEIGHTED_SEG_LOSS and is_seg else "mean"
-        return nn.BCEWithLogitsLoss(reduction=reduction).to(self._get_device())
+        if is_seg:
+            return nn.BCEWithLogitsLoss(reduction=reduction).to(self._get_device())
+        else:
+            return nn.CrossEntropyLoss(reduction=reduction).to(self._get_device())
 
     def _get_device(self):
         return f"cuda:{self.cfg.GPU}"

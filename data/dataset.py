@@ -20,15 +20,17 @@ class Dataset(torch.utils.data.Dataset):
 
     def init_extra(self):
         self.counter = 0
-        self.neg_imgs_permutation = np.random.permutation(self.num_neg)
+        #self.neg_imgs_permutation = np.random.permutation(self.num_neg)
 
-        self.neg_retrieval_freq = np.zeros(shape=self.num_neg)
+        #self.neg_retrieval_freq = np.zeros(shape=self.num_neg)
 
     def __getitem__(self, index) -> (torch.Tensor, torch.Tensor, torch.Tensor, bool, str):
-
+        
+        '''
         if self.counter >= self.len:
             self.counter = 0
             if self.frequency_sampling:
+                # SKIP THIS FOR NOW
                 sample_probability = 1 - (self.neg_retrieval_freq / np.max(self.neg_retrieval_freq))
                 sample_probability = sample_probability - np.median(sample_probability) + 1
                 sample_probability = sample_probability ** (np.log(len(sample_probability)) * 4)
@@ -41,8 +43,9 @@ class Dataset(torch.utils.data.Dataset):
                                                              replace=False)
             else:
                 self.neg_imgs_permutation = np.random.permutation(self.num_neg)
+        '''
 
-
+        '''
         if self.kind == 'TRAIN':
             if index >= self.num_pos:
                 ix = index % self.num_pos
@@ -59,8 +62,9 @@ class Dataset(torch.utils.data.Dataset):
             else:
                 ix = index - self.num_neg
                 item = self.pos_samples[ix]
+        '''
 
-        image, seg_mask, seg_loss_mask, is_segmented, image_path, seg_mask_path, sample_name, label = item
+        image, seg_mask, seg_loss_mask, is_segmented, image_path, seg_mask_path, sample_name, label = self.samples[index]
 
         if self.cfg.ON_DEMAND_READ:  # STEEL only so far
             if image_path == -1 or seg_mask_path == -1:
@@ -88,9 +92,9 @@ class Dataset(torch.utils.data.Dataset):
             seg_mask = self.to_tensor(self.downsize(seg_mask))
             seg_loss_mask = self.to_tensor(self.downsize(seg_loss_mask))
 
-        self.counter = self.counter + 1
+        #self.counter = self.counter + 1
 
-        return image, seg_mask, seg_loss_mask, is_segmented, sample_name, label
+        return image, seg_mask, seg_loss_mask, is_segmented, sample_name, torch.tensor([label])
 
     def __len__(self):
         return self.len

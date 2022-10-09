@@ -52,8 +52,8 @@ class JGPMultiDataset(Dataset):
         self.read_contents()
 
     def read_contents(self):
-        pos_samples, neg_samples = [], []
-        samples = defaultdict(list)
+
+        self.samples = []
         
         is_segmented = True
 
@@ -65,9 +65,9 @@ class JGPMultiDataset(Dataset):
                 label_idx = self.labels_lookup[label_l]
                 if label_l != "neg":
                     seg_mask_path = str(self.image_dir/label_l/f"{f.stem}_GT.png")
-                    samples[label_l].append((None, None, None, is_segmented, img_path, seg_mask_path, img_name, label_idx))
+                    self.samples.append((None, None, None, is_segmented, img_path, seg_mask_path, img_name, label_idx))
                 else:
-                    samples[label_l].append((None, None, None, is_segmented, img_path, None, img_name, label_idx))
+                    self.samples.append((None, None, None, is_segmented, img_path, None, img_name, label_idx))
         
         '''
         self.pos_samples = pos_samples
@@ -77,8 +77,11 @@ class JGPMultiDataset(Dataset):
         self.num_neg = len(neg_samples)
         self.len = 2 * len(pos_samples) if self.kind in ['TRAIN'] else len(pos_samples) + len(neg_samples)
         '''
-        self.len = sum([len(v) for k, v in samples.items()])
-        #print(self.kind, self.len)
-        pp.pprint(samples['a'])
+        self.len = len(self.samples)
 
-        self.init_extra()
+        # hard code for now, subject to change
+        #self.num_neg = len(samples["neg"])
+        #self.num_pos = sum([len(v) for k, v in samples.items() if k != "neg"])
+        #print(self.kind, self.len)
+        #pp.pprint(samples['a'])
+        #self.init_extra()

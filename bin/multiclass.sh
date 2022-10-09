@@ -17,7 +17,7 @@ python -u train_net.py  \
     --WEIGHTED_SEG_LOSS_MAX=1 \
     --DYN_BALANCED_LOSS=True \
     --GRADIENT_ADJUSTMENT=True \
-    --FREQUENCY_SAMPLING=True \
+    --FREQUENCY_SAMPLING=False \
     --NUM_SEGMENTED=939 \
     --ON_DEMAND_READ True \
     --OUTPUT_CLASS 9
