@@ -121,6 +121,7 @@ class Config:
         self.GRADIENT_ADJUSTMENT = args.GRADIENT_ADJUSTMENT
         self.FREQUENCY_SAMPLING = args.FREQUENCY_SAMPLING
         self.NUM_SEGMENTED = args.NUM_SEGMENTED
+        self.OUTPUT_CLASS = args.OUTPUT_CLASS
 
         if args.FOLD is not None: self.FOLD = args.FOLD
         if args.TRAIN_NUM is not None: self.TRAIN_NUM = args.TRAIN_NUM

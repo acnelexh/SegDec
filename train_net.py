@@ -47,6 +47,8 @@ def parse_args():
     parser.add_argument('--MEMORY_FIT', type=int, default=None, help="How many images can be fitted in GPU memory.")
     parser.add_argument('--SAVE_IMAGES', type=str2bool, default=None, help="Save test images or not.")
 
+    parser.add_argument('--OUTPUT_CLASS', type=int, default=2, help="How many output class do you want to specify.")
+
     args = parser.parse_args()
 
     return args

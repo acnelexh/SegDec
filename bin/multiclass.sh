@@ -19,4 +19,5 @@ python -u train_net.py  \
     --GRADIENT_ADJUSTMENT=True \
     --FREQUENCY_SAMPLING=True \
     --NUM_SEGMENTED=939 \
-    --ON_DEMAND_READ True 
+    --ON_DEMAND_READ True \
+    --OUTPUT_CLASS 9

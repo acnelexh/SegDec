@@ -72,7 +72,7 @@ class End2End:
 
     def training_iteration(self, data, device, model, criterion_seg, criterion_dec, optimizer, weight_loss_seg, weight_loss_dec,
                            tensorboard_writer, iter_index):
-        images, seg_masks, seg_loss_masks, is_segmented, _ = data
+        images, seg_masks, seg_loss_masks, is_segmented, _, labels = data
 
         batch_size = self.cfg.BATCH_SIZE
         memory_fit = self.cfg.MEMORY_FIT  # Not supported yet for >1
@@ -94,6 +94,7 @@ class End2End:
             seg_masks_[seg_masks_ > 0.5] = 1
             seg_masks_[seg_masks_ != 1] = 0
             seg_loss_masks_ = seg_loss_masks[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
+            # TODO change this to support multi label
             is_pos_ = seg_masks_.max().reshape((memory_fit, 1)).to(device)
 
             if tensorboard_writer is not None and iter_index % 100 == 0:
@@ -362,7 +363,7 @@ class End2End:
         list(map(utils.create_folder, [self.run_path, self.model_path, self.outputs_path, ]))
 
     def _get_model(self):
-        seg_net = SegDecNet(self._get_device(), self.cfg.INPUT_WIDTH, self.cfg.INPUT_HEIGHT, self.cfg.INPUT_CHANNELS)
+        seg_net = SegDecNet(self._get_device(), self.cfg.INPUT_WIDTH, self.cfg.INPUT_HEIGHT, self.cfg.INPUT_CHANNELS, self.cfg.OUTPUT_CLASS)
         return seg_net
 
     def print_run_params(self):
