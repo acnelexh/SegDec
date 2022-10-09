@@ -35,8 +35,14 @@ class JGPMultiDataset(Dataset):
         elif kind == "TEST":
             self.image_dir = self.image_dir/"test"
         
+        # add labels
         self.labels = [str(d).split("/")[-1] for d in self.image_dir.glob('*')]
+        self.labels_lookup = dict()
+        # assume we created the each labels is presented in each split
+        for idx, l in enumerate(self.labels):
+            self.labels_lookup[l] = idx
 
+        # use dictionary of list to store files
         self.files = dict()
         for l in self.labels:
             all_files =  [x for x in (self.image_dir/l).glob("*")]
@@ -56,11 +62,12 @@ class JGPMultiDataset(Dataset):
             for f in files_label_l:
                 img_name = f"{str(f.stem)}.png"
                 img_path = str(self.image_dir/label_l/img_name)
+                label_idx = self.labels_lookup[label_l]
                 if label_l != "neg":
                     seg_mask_path = str(self.image_dir/label_l/f"{f.stem}_GT.png")
-                    samples[label_l].append((None, None, None, is_segmented, img_path, seg_mask_path, img_name))
+                    samples[label_l].append((None, None, None, is_segmented, img_path, seg_mask_path, img_name, label_idx))
                 else:
-                    samples[label_l].append((None, None, None, is_segmented, img_path, None, img_name))
+                    samples[label_l].append((None, None, None, is_segmented, img_path, None, img_name, label_idx))
         
         '''
         self.pos_samples = pos_samples

@@ -49,7 +49,6 @@ class Dataset(torch.utils.data.Dataset):
                 ix = self.neg_imgs_permutation[ix]
                 item = self.neg_samples[ix]
                 self.neg_retrieval_freq[ix] = self.neg_retrieval_freq[ix] + 1
-
             else:
                 ix = index
                 item = self.pos_samples[ix]
@@ -61,7 +60,7 @@ class Dataset(torch.utils.data.Dataset):
                 ix = index - self.num_neg
                 item = self.pos_samples[ix]
 
-        image, seg_mask, seg_loss_mask, is_segmented, image_path, seg_mask_path, sample_name = item
+        image, seg_mask, seg_loss_mask, is_segmented, image_path, seg_mask_path, sample_name, label = item
 
         if self.cfg.ON_DEMAND_READ:  # STEEL only so far
             if image_path == -1 or seg_mask_path == -1:
@@ -91,7 +90,7 @@ class Dataset(torch.utils.data.Dataset):
 
         self.counter = self.counter + 1
 
-        return image, seg_mask, seg_loss_mask, is_segmented, sample_name
+        return image, seg_mask, seg_loss_mask, is_segmented, sample_name, label
 
     def __len__(self):
         return self.len

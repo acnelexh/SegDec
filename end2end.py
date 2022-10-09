@@ -90,6 +90,7 @@ class End2End:
         for sub_iter in range(num_subiters):
             images_ = images[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
             seg_masks_ = seg_masks[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
+            # make seg_mask_ a binary mask (due to dialtion, some pixel is between)
             seg_masks_[seg_masks_ > 0.5] = 1
             seg_masks_[seg_masks_ != 1] = 0
             seg_loss_masks_ = seg_loss_masks[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
