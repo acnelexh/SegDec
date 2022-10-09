@@ -34,7 +34,7 @@ class JGPDataset(Dataset):
 
         self.neg_files = [x for x in (self.image_dir/"neg").glob("*.png")]
         self.pos_files = (self.image_dir/"pos").glob("*GT.png")
-        self.pos_files = [x for x in self.pos_files][:len(self.neg_files)]
+        #self.pos_files = [x for x in self.pos_files][:len(self.neg_files)]
         # Read contents
         #pdb.set_trace()
         self.read_contents()
