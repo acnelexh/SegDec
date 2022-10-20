@@ -1,7 +1,7 @@
 #!/bin/bash
 
 python -u train_net.py  \
-    --GPU=0 \
+    --GPU=4 \
     --DATASET=JGPMulti \
     --RUN_NAME="multiclass" \
     --DATASET_PATH="./datasets/JGP/multi-class"\

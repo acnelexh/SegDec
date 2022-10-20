@@ -14,6 +14,10 @@ import random
 import cv2
 from config import Config
 from torch.utils.tensorboard import SummaryWriter
+import pprint
+import pdb
+
+pp = pprint.PrettyPrinter(indent=4)
 
 LVL_ERROR = 10
 LVL_INFO = 5
@@ -72,13 +76,14 @@ class End2End:
 
     def training_iteration(self, data, device, model, criterion_seg, criterion_dec, optimizer, weight_loss_seg, weight_loss_dec,
                            tensorboard_writer, iter_index):
+        #pdb.set_trace()
         images, seg_masks, seg_loss_masks, is_segmented, _, labels = data
 
         batch_size = self.cfg.BATCH_SIZE
         memory_fit = self.cfg.MEMORY_FIT  # Not supported yet for >1
 
         num_subiters = int(batch_size / memory_fit)
-        #
+
         total_loss = 0
         total_correct = 0
 
@@ -96,10 +101,7 @@ class End2End:
             seg_masks_[seg_masks_ > 0.5] = 1
             seg_masks_[seg_masks_ != 1] = 0
             # make the mask value == label idx
-            seg_masks_ *= labels_sub_itr
             seg_loss_masks_ = seg_loss_masks[sub_iter * memory_fit:(sub_iter + 1) * memory_fit, :, :, :].to(device)
-            # TODO change this to support multi label
-            #is_pos_ = seg_masks_.max().reshape((memory_fit, 1)).to(device)
 
 
             if tensorboard_writer is not None and iter_index % 100 == 0:
@@ -111,6 +113,8 @@ class End2End:
             #print(decision.shape, labels[sub_iter])
 
             if is_segmented[sub_iter]:
+                #pp.pprint(output_seg_mask)
+                #pp.pprint(seg_masks_)
                 if self.cfg.WEIGHTED_SEG_LOSS:
                     loss_seg = torch.mean(criterion_seg(output_seg_mask, seg_masks_) * seg_loss_masks_)
                 else:
@@ -118,7 +122,7 @@ class End2End:
                 #print("decision:", decision)
                 #print("is_pos_:", is_pos_)
                 #print(seg_masks_)
-                #print(decision, labels[sub_iter])
+                #print(decision, labels[sub_iter
                 loss_dec = criterion_dec(decision, labels_sub_itr)
 
                 total_loss_seg += loss_seg.item()
@@ -181,7 +185,9 @@ class End2End:
                                                                                            weight_loss_dec,
                                                                                            tensorboard_writer, (epoch * samples_per_epoch + iter_index))
 
-                #print(curr_loss_seg, curr_loss_dec, curr_loss, correct)
+                # print(curr_loss_seg, curr_loss_dec, curr_loss, correct)
+                # if curr_loss_seg < 0:
+                #     pdb.set_trace()
                 end_1 = timer()
                 time_acc = time_acc + (end_1 - start_1)
 
@@ -356,8 +362,8 @@ class End2End:
     def _get_loss(self, is_seg):
         reduction = "none" if self.cfg.WEIGHTED_SEG_LOSS and is_seg else "mean"
         if is_seg:
-            #return nn.BCEWithLogitsLoss(reduction=reduction).to(self._get_device())
-            return nn.CrossEntropyLoss(reduction=reduction).to(self._get_device())
+            return nn.BCEWithLogitsLoss(reduction=reduction).to(self._get_device())
+            #return nn.CrossEntropyLoss(reduction=reduction).to(self._get_device())
         else:
             return nn.CrossEntropyLoss(reduction=reduction).to(self._get_device())
 
