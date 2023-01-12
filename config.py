@@ -122,6 +122,8 @@ class Config:
         self.FREQUENCY_SAMPLING = args.FREQUENCY_SAMPLING
         self.NUM_SEGMENTED = args.NUM_SEGMENTED
         self.OUTPUT_CLASS = args.OUTPUT_CLASS
+        self.WEIGHT_DECAY = args.WEIGHT_DECAY
+        self.MOMENTUM = args.MOMENTUM
 
         if args.FOLD is not None: self.FOLD = args.FOLD
         if args.TRAIN_NUM is not None: self.TRAIN_NUM = args.TRAIN_NUM

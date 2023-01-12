@@ -54,6 +54,7 @@ class End2End:
         device = self._get_device()
         model = self._get_model().to(device)
         optimizer = self._get_optimizer(model)
+        scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.1)
         loss_seg, loss_dec = self._get_loss(True), self._get_loss(False)
 
         train_loader = get_dataset("TRAIN", self.cfg)
@@ -61,7 +62,7 @@ class End2End:
 
         tensorboard_writer = SummaryWriter(log_dir=self.tensorboard_path) if WRITE_TENSORBOARD else None
 
-        train_results = self._train_model(device, model, train_loader, loss_seg, loss_dec, optimizer, validation_loader, tensorboard_writer)
+        train_results = self._train_model(device, model, train_loader, loss_seg, loss_dec, optimizer, validation_loader, tensorboard_writer, scheduler)
         self._save_train_results(train_results)
         self._save_model(model)
 
@@ -124,7 +125,7 @@ class End2End:
                 #print(seg_masks_)
                 #print(decision, labels[sub_iter
                 loss_dec = criterion_dec(decision, labels_sub_itr)
-
+                #pdb.set_trace()
                 total_loss_seg += loss_seg.item()
                 total_loss_dec += loss_dec.item()
 
@@ -149,7 +150,7 @@ class End2End:
 
         return total_loss_seg, total_loss_dec, total_loss, total_correct
 
-    def _train_model(self, device, model, train_loader, criterion_seg, criterion_dec, optimizer, validation_set, tensorboard_writer):
+    def _train_model(self, device, model, train_loader, criterion_seg, criterion_dec, optimizer, validation_set, tensorboard_writer, scheduler):
         losses = []
         validation_data = []
         max_validation = -1
@@ -196,6 +197,8 @@ class End2End:
                 epoch_loss += curr_loss
 
                 epoch_correct += correct
+                
+            scheduler.step()
 
             end = timer()
 
@@ -213,12 +216,13 @@ class End2End:
                 tensorboard_writer.add_scalar("Loss/Train/joined", epoch_loss, epoch)
                 tensorboard_writer.add_scalar("Accuracy/Train/", epoch_correct / samples_per_epoch, epoch)
 
+            # TODO AP to ACC
             if self.cfg.VALIDATE and (epoch % validation_step == 0 or epoch == num_epochs - 1):
                 validation_ap, validation_accuracy = self.eval_model(device, model, validation_set, None, False, True, False)
-                validation_data.append((validation_ap, epoch))
+                validation_data.append((validation_accuracy, epoch))
 
-                if validation_ap > max_validation:
-                    max_validation = validation_ap
+                if validation_accuracy > max_validation:
+                    max_validation = validation_accuracy
                     self._save_model(model, "best_state_dict.pth")
 
                 model.train()
@@ -330,6 +334,7 @@ class End2End:
         plt.plot(le, l, label="Loss", color="red")
         plt.plot(le, ls, label="Loss seg")
         plt.plot(le, ld, label="Loss dec")
+        plt.legend()
         plt.ylim(bottom=0)
         plt.grid()
         plt.xlabel("Epochs")
@@ -357,7 +362,7 @@ class End2End:
         torch.save(model.state_dict(), output_name)
 
     def _get_optimizer(self, model):
-        return torch.optim.SGD(model.parameters(), self.cfg.LEARNING_RATE)
+        return torch.optim.SGD(model.parameters(), self.cfg.LEARNING_RATE, weight_decay=self.cfg.WEIGHT_DECAY, momentum=self.cfg.MOMENTUM)
 
     def _get_loss(self, is_seg):
         reduction = "none" if self.cfg.WEIGHTED_SEG_LOSS and is_seg else "mean"

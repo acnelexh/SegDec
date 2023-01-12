@@ -25,7 +25,7 @@ class JGPMultiDataset(Dataset):
     def __init__(self, kind: str, cfg: Config):
         super(JGPMultiDataset, self).__init__(cfg.DATASET_PATH, cfg, kind)
         # Hard code
-        self.image_dir = Path("./datasets/JGP/multi-class")
+        self.image_dir = Path("./datasets/JGP")
         self.cfg.ON_DEMAND_READ = True
 
         if kind == "TRAIN":

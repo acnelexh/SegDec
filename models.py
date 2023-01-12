@@ -1,7 +1,11 @@
 import math
 import torch
+import pdb
 import torch.nn as nn
+#from torchvision.models import resnet18
 from torch.nn import init
+import copy
+from resnet import resnet18
 
 BATCHNORM_TRACK_RUNNING_STATS = False
 BATCHNORM_MOVING_AVERAGE_DECAY = 0.9997
@@ -50,6 +54,15 @@ class FeatureNorm(nn.Module):
         f_mean = torch.mean(features, dim=self.reduce_dims, keepdim=True)
         return self.scale * ((features - f_mean) / (f_std + self.eps).sqrt()) + self.bias
 
+class ResNet18(nn.Module):
+    def __init__(self):
+        super(ResNet18, self).__init__()
+        self.net = resnet18()
+        
+
+    def forward(self, x):
+        x = self.net(x)
+        return x
 
 class SegDecNet(nn.Module):
     def __init__(self, device, input_width, input_height, input_channels, output_class=1):
@@ -59,35 +72,43 @@ class SegDecNet(nn.Module):
         self.input_width = input_width
         self.input_height = input_height
         self.input_channels = input_channels
-        self.volume = nn.Sequential(_conv_block(self.input_channels, 32, 5, 2),
-                                    # _conv_block(32, 32, 5, 2), # Has been accidentally left out and remained the same since then
-                                    nn.MaxPool2d(2),
-                                    _conv_block(32, 64, 5, 2),
-                                    _conv_block(64, 64, 5, 2),
-                                    _conv_block(64, 64, 5, 2),
-                                    nn.MaxPool2d(2),
-                                    _conv_block(64, 64, 5, 2),
-                                    _conv_block(64, 64, 5, 2),
-                                    _conv_block(64, 64, 5, 2),
-                                    _conv_block(64, 64, 5, 2),
-                                    nn.MaxPool2d(2),
-                                    _conv_block(64, 1024, 15, 7))
-
-        #self.seg_mask = nn.Sequential(
-        #    Conv2d_init(in_channels=1024, out_channels=1, kernel_size=1, padding=0, bias=False),
-        #    FeatureNorm(num_features=1, eps=0.001, include_bias=False))
+        # self.volume = nn.Sequential(_conv_block(self.input_channels, 32, 5, 2),
+        #                             # _conv_block(32, 32, 5, 2), # Has been accidentally left out and remained the same since then
+        #                             nn.MaxPool2d(2),
+        #                             _conv_block(32, 64, 5, 2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             nn.MaxPool2d(2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             _conv_block(64, 64, 5, 2),
+        #                             nn.MaxPool2d(2),
+        #                             _conv_block(64, 1024, 15, 7))
+        self.volume = ResNet18()
+        #print(self.volume)
+        output_channel_volumn = 1024
+        self.seg_mask = nn.Sequential(
+            Conv2d_init(in_channels=output_channel_volumn, out_channels=1, kernel_size=1, padding=0, bias=False),
+            FeatureNorm(num_features=1, eps=0.001, include_bias=False))
         
-        self.seg_mask = Conv2d_init(in_channels=1024, out_channels=1, kernel_size=1, padding=0, bias=False)
+        #self.seg_mask = Conv2d_init(in_channels=1024, out_channels=1, kernel_size=1, padding=0, bias=False)
 
+        # self.extractor = nn.Sequential(nn.MaxPool2d(kernel_size=2),
+        #                                _conv_block(in_chanels=1025, out_chanels=8, kernel_size=5, padding=2),
+        #                                nn.MaxPool2d(kernel_size=2),
+        #                                _conv_block(in_chanels=8, out_chanels=16, kernel_size=5, padding=2),
+        #                                nn.MaxPool2d(kernel_size=2),
+        #                                _conv_block(in_chanels=16, out_chanels=32, kernel_size=5, padding=2))
         self.extractor = nn.Sequential(nn.MaxPool2d(kernel_size=2),
-                                       _conv_block(in_chanels=1025, out_chanels=8, kernel_size=5, padding=2),
+                                       _conv_block(in_chanels=output_channel_volumn+1, out_chanels=8, kernel_size=5, padding=2),
                                        nn.MaxPool2d(kernel_size=2),
                                        _conv_block(in_chanels=8, out_chanels=16, kernel_size=5, padding=2),
                                        nn.MaxPool2d(kernel_size=2),
                                        _conv_block(in_chanels=16, out_chanels=32, kernel_size=5, padding=2))
         # break down
         self.c1 = nn.MaxPool2d(kernel_size=2)
-        self.c2 = _conv_block(in_chanels=1025, out_chanels=8, kernel_size=5, padding=2)
+        self.c2 = _conv_block(in_chanels=output_channel_volumn+1, out_chanels=8, kernel_size=5, padding=2)
         self.c3 = nn.MaxPool2d(kernel_size=2)
         self.c4 = _conv_block(in_chanels=8, out_chanels=16, kernel_size=5, padding=2)
         self.c5 = nn.MaxPool2d(kernel_size=2)
@@ -115,8 +136,8 @@ class SegDecNet(nn.Module):
 
     def forward(self, input):
         volume = self.volume(input)
-        seg_mask = self.seg_mask(volume)
 
+        seg_mask = self.seg_mask(volume)
         cat = torch.cat([volume, seg_mask], dim=1)
 
         cat = self.volume_lr_multiplier_layer(cat, self.volume_lr_multiplier_mask)

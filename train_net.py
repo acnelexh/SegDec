@@ -49,6 +49,10 @@ def parse_args():
 
     parser.add_argument('--OUTPUT_CLASS', type=int, default=2, help="How many output class do you want to specify.")
 
+
+    parser.add_argument('--WEIGHT_DECAY', type=float, required=False, help="Weight decay.")
+    parser.add_argument('--MOMENTUM', type=float, required=False, help="Momentum for SGD.")
+
     args = parser.parse_args()
 
     return args
